@@ -86,6 +86,16 @@ export async function getRfqById(req: AuthenticatedRequest, res: Response) {
             lastName: true,
           },
         },
+        quotations: {
+          where: req.user?.roleName === "VENDOR" ? { vendorId: req.user.vendorId } : undefined,
+          include: {
+            purchaseOrders: {
+              include: {
+                invoices: true,
+              },
+            },
+          },
+        },
       },
     });
 

@@ -105,8 +105,61 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="text-center">
-          <p className="text-[10px] text-slate-500 uppercase tracking-widest leading-relaxed">
+        {/* Demo Accounts Quick Fill */}
+        <div className="border-t border-slate-800 pt-4 space-y-2">
+          <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">
+            Demo Sandbox Accounts (Click to Auto-Fill)
+          </span>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("admin@vendorbridge.com");
+                setPassword("password123");
+              }}
+              className="p-2 bg-slate-900 border border-slate-800 hover:border-primary-500 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition-all text-left flex flex-col"
+            >
+              <span className="text-primary-400 font-bold">System Admin</span>
+              <span className="text-[9px] text-slate-500 truncate">admin@vendorbridge.com</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("officer@vendorbridge.com");
+                setPassword("password123");
+              }}
+              className="p-2 bg-slate-900 border border-slate-800 hover:border-primary-500 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition-all text-left flex flex-col"
+            >
+              <span className="text-primary-400 font-bold">Procure Officer</span>
+              <span className="text-[9px] text-slate-500 truncate">officer@vendorbridge.com</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("manager@vendorbridge.com");
+                setPassword("password123");
+              }}
+              className="p-2 bg-slate-900 border border-slate-800 hover:border-primary-500 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition-all text-left flex flex-col"
+            >
+              <span className="text-primary-400 font-bold">Purchasing Manager</span>
+              <span className="text-[9px] text-slate-500 truncate">manager@vendorbridge.com</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("vendor1@vendorbridge.com");
+                setPassword("password123");
+              }}
+              className="p-2 bg-slate-900 border border-slate-800 hover:border-primary-500 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition-all text-left flex flex-col"
+            >
+              <span className="text-primary-400 font-bold">Tata Steel Vendor</span>
+              <span className="text-[9px] text-slate-500 truncate">vendor1@vendorbridge.com</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="text-center pt-2">
+          <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-relaxed">
             Authorized access only. Audit logging is active.
           </p>
         </div>

@@ -15,7 +15,6 @@ import {
   FileCheck
 } from "lucide-react";
 import api from "../services/api";
-import ProgressTracker from "../components/workflow/ProgressTracker";
 import StatusBadge from "../components/common/StatusBadge";
 import { formatDate, formatCurrency } from "../utils/formatters";
 
@@ -31,6 +30,18 @@ interface RfqDetailData {
   rfqAttachments: any[];
   rfqVendors: any[];
   creator: { firstName: string; lastName: string };
+  quotations: {
+    id: string;
+    status: string;
+    purchaseOrders: {
+      id: string;
+      status: string;
+      invoices: {
+        id: string;
+        status: string;
+      }[];
+    }[];
+  }[];
 }
 
 export const RfqDetail: React.FC = () => {
@@ -155,8 +166,20 @@ export const RfqDetail: React.FC = () => {
     );
   }
 
-  const rfqSteps = ["DRAFT", "SENT", "CLOSED", "COMPLETED"];
   const vendorHasQuoted = rfq.rfqVendors.find(rv => rv.vendorId === currentUser.vendorId)?.status === "SUBMITTED";
+
+  const hasQuotes = rfq.quotations && rfq.quotations.length > 0;
+  const hasApproval = rfq.quotations && rfq.quotations.some((q: any) => q.status === "APPROVED");
+  const hasPO = rfq.quotations && rfq.quotations.some((q: any) => q.purchaseOrders && q.purchaseOrders.length > 0);
+  const hasInvoice = rfq.quotations && rfq.quotations.some((q: any) => q.purchaseOrders && q.purchaseOrders.some((po: any) => po.invoices && po.invoices.length > 0));
+
+  const workflowSteps = [
+    { label: "RFQ Created", completed: true },
+    { label: "Quotation Received", completed: hasQuotes },
+    { label: "Manager Approval", completed: hasApproval || hasPO },
+    { label: "PO Generated", completed: hasPO },
+    { label: "Invoice Generated", completed: hasInvoice },
+  ];
 
   return (
     <div className="space-y-6 select-none p-1">
@@ -182,7 +205,35 @@ export const RfqDetail: React.FC = () => {
             </div>
           </div>
 
-          <ProgressTracker steps={rfqSteps} currentStep={rfq.status} />
+          {/* Visual Workflow Progress Tracker */}
+          <div className="flex items-center space-x-1 sm:space-x-2 text-xs font-semibold select-none flex-wrap gap-y-2">
+            {workflowSteps.map((step, idx) => {
+              const isActive = step.completed && (idx === workflowSteps.length - 1 || !workflowSteps[idx + 1].completed);
+              return (
+                <React.Fragment key={step.label}>
+                  {idx > 0 && (
+                    <div 
+                      className={`h-[2px] w-3 sm:w-6 transition-colors duration-300 ${
+                        step.completed ? "bg-emerald-500" : "bg-slate-200"
+                      }`} 
+                    />
+                  )}
+                  <span
+                    className={`px-2.5 py-1 rounded-full border text-[10px] sm:text-xs transition-all duration-300 flex items-center space-x-1 ${
+                      isActive
+                        ? "bg-primary-500 text-white border-primary-600 shadow-sm font-bold scale-105"
+                        : step.completed
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                        : "bg-slate-50 text-slate-400 border-slate-200"
+                    }`}
+                  >
+                    {step.completed && !isActive && <span className="w-1 h-1 rounded-full bg-emerald-500 flex-shrink-0" />}
+                    <span>{step.label}</span>
+                  </span>
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
 
         {/* Action Controls for Officers */}

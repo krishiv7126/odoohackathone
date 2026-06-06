@@ -211,3 +211,70 @@ export async function updateVendorStatus(req: AuthenticatedRequest, res: Respons
     return res.status(500).json({ message: "Internal server error" });
   }
 }
+
+// Get vendor scorecard details (Vendor score, response rate, lead times, completions)
+export async function getVendorScorecard(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+
+  try {
+    const vendor = await prisma.vendor.findUnique({
+      where: { id },
+      include: {
+        quotations: {
+          include: { quotationItems: true }
+        },
+        purchaseOrders: true,
+        rfqVendors: true
+      }
+    });
+
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor profile not found" });
+    }
+
+    const totalQuotes = vendor.quotations.length;
+    const approvedQuotes = vendor.quotations.filter(q => q.status === "APPROVED").length;
+    const rejectedQuotes = vendor.quotations.filter(q => q.status === "REJECTED").length;
+    const approvalRate = totalQuotes > 0 ? Math.round((approvedQuotes / totalQuotes) * 100) : 0;
+
+    const completedOrders = vendor.purchaseOrders.filter(po => po.status === "COMPLETED").length;
+
+    // Average lead time
+    let totalLeadTime = 0;
+    let leadTimeCount = 0;
+    vendor.quotations.forEach(q => {
+      q.quotationItems.forEach(qi => {
+        totalLeadTime += qi.leadTimeDays;
+        leadTimeCount++;
+      });
+    });
+    const avgLeadTime = leadTimeCount > 0 ? (totalLeadTime / leadTimeCount) : 0;
+
+    // Response Rate
+    const assignedRfqs = vendor.rfqVendors.length;
+    const responseRate = assignedRfqs > 0 ? Math.min(100, Math.round((totalQuotes / assignedRfqs) * 100)) : 100;
+
+    // Vendor score calculation
+    let rawScore = 75;
+    if (totalQuotes > 0) {
+      rawScore = Math.round((responseRate * 0.3) + (approvalRate * 0.5) + (10 - Math.min(10, avgLeadTime)) * 2);
+    }
+    const vendorScore = Math.min(98, Math.max(65, rawScore));
+
+    return res.status(200).json({
+      vendorId: vendor.id,
+      vendorName: vendor.name,
+      vendorScore,
+      responseRate,
+      approvalRate,
+      avgLeadTime: Math.round(avgLeadTime * 10) / 10,
+      completedOrders,
+      rejectedQuotations: rejectedQuotes,
+      totalQuotes
+    });
+  } catch (error) {
+    console.error("Error generating vendor scorecard:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+

@@ -22,14 +22,15 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
     const pendingApprovals = isVendor ? null : await prisma.quotation.count({ where: { status: "SUBMITTED" } });
     const totalPos = await prisma.purchaseOrder.count({ where: vendorScope });
     const totalInvoices = await prisma.invoice.count({ where: vendorScope });
+    const totalQuotations = await prisma.quotation.count({ where: vendorScope });
 
-    // Calculate Monthly Spend (Sum of grandTotal of PAID invoices in the last 30 days)
+    // Calculate Monthly Spend (Sum of grandTotal of PAID/SENT invoices in the last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const monthlySpendResult = await prisma.invoice.aggregate({
       where: {
-        status: "PAID",
+        status: { in: ["SENT", "PAID"] },
         createdAt: { gte: thirtyDaysAgo },
         ...vendorScope,
       },
@@ -39,7 +40,133 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
     });
     const monthlySpend = Number(monthlySpendResult._sum.grandTotal || 0);
 
-    // 2. Recents Lists (5 items each)
+    // 2. Cost Savings calculation (Highest Quote vs Selected/Approved/Best Quote)
+    const rfqsWithQuotes = await prisma.rfq.findMany({
+      include: {
+        quotations: {
+          where: {
+            status: { in: ["APPROVED", "SUBMITTED", "UNDER_REVIEW"] }
+          }
+        }
+      }
+    });
+
+    let totalHighest = 0;
+    let totalBest = 0;
+    let totalSavings = 0;
+    let quoteCountForAvg = 0;
+    let totalQuotesSum = 0;
+
+    rfqsWithQuotes.forEach(r => {
+      const quotes = r.quotations;
+      if (quotes.length > 0) {
+        const prices = quotes.map(q => Number(q.grandTotal));
+        const maxPrice = Math.max(...prices);
+        const approvedQuote = quotes.find(q => q.status === "APPROVED");
+        const bestPrice = approvedQuote ? Number(approvedQuote.grandTotal) : Math.min(...prices);
+        
+        totalHighest += maxPrice;
+        totalBest += bestPrice;
+        totalSavings += (maxPrice - bestPrice);
+        
+        quotes.forEach(q => {
+          totalQuotesSum += Number(q.grandTotal);
+          quoteCountForAvg++;
+        });
+      }
+    });
+
+    const averageQuote = quoteCountForAvg > 0 ? Math.round(totalQuotesSum / quoteCountForAvg) : 0;
+
+    // 3. Procurement Health Score
+    const totalAssignments = await prisma.rfqVendor.count();
+    const allQuotesCount = await prisma.quotation.count();
+    const vendorResponseRate = totalAssignments > 0 ? Math.min(100, Math.round((allQuotesCount / totalAssignments) * 100)) : 100;
+
+    const totalRfqsCount = await prisma.rfq.count();
+    const completedRfqsCount = await prisma.rfq.count({ where: { status: "COMPLETED" } });
+    const rfqCompletionRate = totalRfqsCount > 0 ? Math.round((completedRfqsCount / totalRfqsCount) * 100) : 100;
+
+    const approvedQuotesCount = await prisma.quotation.count({ where: { status: "APPROVED" } });
+    const processedQuotesCount = await prisma.quotation.count({ where: { status: { in: ["APPROVED", "REJECTED"] } } });
+    const approvalSuccessRate = processedQuotesCount > 0 ? Math.round((approvedQuotesCount / processedQuotesCount) * 100) : 100;
+
+    const totalInvoicesCount = await prisma.invoice.count();
+    const sentOrPaidInvoicesCount = await prisma.invoice.count({ where: { status: { in: ["SENT", "PAID"] } } });
+    const invoiceCompletionRate = totalInvoicesCount > 0 ? Math.round((sentOrPaidInvoicesCount / totalInvoicesCount) * 100) : 100;
+
+    const healthScore = Math.round((vendorResponseRate + rfqCompletionRate + approvalSuccessRate + invoiceCompletionRate) / 4);
+
+    // 4. Top Vendors performance ranking
+    const allApprovedVendors = await prisma.vendor.findMany({
+      where: { status: "APPROVED" },
+      include: {
+        quotations: { include: { quotationItems: true } },
+        purchaseOrders: true,
+        rfqVendors: true
+      }
+    });
+
+    const vendorScorecards = allApprovedVendors.map(v => {
+      const totalQuotes = v.quotations.length;
+      const approvedQuotes = v.quotations.filter(q => q.status === "APPROVED").length;
+      const approvalRate = totalQuotes > 0 ? Math.round((approvedQuotes / totalQuotes) * 100) : 0;
+      
+      const totalSpend = v.purchaseOrders
+        .filter(po => ["SENT", "COMPLETED"].includes(po.status))
+        .reduce((sum, po) => sum + Number(po.grandTotal), 0);
+      
+      let totalLeadTime = 0;
+      let leadTimeCount = 0;
+      v.quotations.forEach(q => {
+        q.quotationItems.forEach(qi => {
+          totalLeadTime += qi.leadTimeDays;
+          leadTimeCount++;
+        });
+      });
+      const avgLeadTime = leadTimeCount > 0 ? (totalLeadTime / leadTimeCount) : 0;
+      const assignedRfqs = v.rfqVendors.length;
+      const responseRate = assignedRfqs > 0 ? Math.min(100, Math.round((totalQuotes / assignedRfqs) * 100)) : 100;
+      
+      let rawScore = 75;
+      if (totalQuotes > 0) {
+        rawScore = Math.round((responseRate * 0.3) + (approvalRate * 0.5) + (10 - Math.min(10, avgLeadTime)) * 2);
+      }
+      const vendorScore = Math.min(98, Math.max(65, rawScore));
+      
+      return {
+        vendorId: v.id,
+        vendorName: v.name,
+        totalSpend,
+        approvalRate,
+        vendorScore,
+        avgLeadTime: Math.round(avgLeadTime * 10) / 10,
+        completedOrders: v.purchaseOrders.filter(p => p.status === "COMPLETED").length,
+        rejectedQuotations: v.quotations.filter(q => q.status === "REJECTED").length
+      };
+    });
+
+    const topVendorsRanked = [...vendorScorecards]
+      .sort((a, b) => b.vendorScore - a.vendorScore)
+      .slice(0, 5);
+
+    // 5. Recent Activity Logs (Latest 10)
+    const recentActivities = await prisma.activityLog.findMany({
+      take: 10,
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: { select: { name: true } }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    // 6. Recents Lists (5 items each)
     const recentRfqs = await prisma.rfq.findMany({
       where: rfqVendorScope,
       take: 5,
@@ -75,6 +202,20 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
         totalPos,
         totalInvoices,
         monthlySpend,
+        totalQuotations,
+        costSavings: {
+          highestQuote: totalHighest,
+          bestQuote: totalBest,
+          averageQuote,
+          savings: totalSavings
+        },
+        healthScore: {
+          score: healthScore,
+          responseRate: vendorResponseRate,
+          completionRate: rfqCompletionRate,
+          approvalRate: approvalSuccessRate,
+          invoiceRate: invoiceCompletionRate
+        }
       },
       recents: {
         rfqs: recentRfqs,
@@ -82,6 +223,8 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
         purchaseOrders: recentPOs,
         invoices: recentInvoices,
       },
+      recentActivities,
+      topVendors: topVendorsRanked
     });
   } catch (error) {
     console.error("Error fetching dashboard statistics:", error);
@@ -101,49 +244,57 @@ export async function getReportsData(req: AuthenticatedRequest, res: Response) {
 
     const vendorScope = isVendor ? { vendorId } : {};
 
-    // 1. Vendor Performance Rating (Admin/Officer/Manager only)
-    let vendorPerformance: any[] = [];
-    if (!isVendor) {
-      const vendors = await prisma.vendor.findMany({
-        where: { status: "APPROVED" },
-        include: {
-          quotations: {
-            include: { quotationItems: true },
-          },
-          purchaseOrders: true,
-        },
-      });
+    // 1. Vendor Performance Rating
+    const vendors = await prisma.vendor.findMany({
+      where: { status: "APPROVED" },
+      include: {
+        quotations: { include: { quotationItems: true } },
+        purchaseOrders: true,
+        rfqVendors: true
+      },
+    });
 
-      vendorPerformance = vendors.map((v) => {
-        const totalQuotesSubmitted = v.quotations.length;
-        const totalQuotesApproved = v.quotations.filter((q) => q.status === "APPROVED").length;
-        const conversionRate = totalQuotesSubmitted > 0 ? (totalQuotesApproved / totalQuotesSubmitted) * 100 : 0;
+    const vendorPerformance = vendors.map((v) => {
+      const totalQuotes = v.quotations.length;
+      const approvedQuotes = v.quotations.filter((q) => q.status === "APPROVED").length;
+      const rejectedQuotes = v.quotations.filter((q) => q.status === "REJECTED").length;
+      const approvalRate = totalQuotes > 0 ? Math.round((approvedQuotes / totalQuotes) * 100) : 0;
 
-        // Calculate average lead time
-        let totalLeadTime = 0;
-        let leadTimeCount = 0;
-        v.quotations.forEach((q) => {
-          q.quotationItems.forEach((qi) => {
-            totalLeadTime += qi.leadTimeDays;
-            leadTimeCount++;
-          });
+      let totalLeadTime = 0;
+      let leadTimeCount = 0;
+      v.quotations.forEach((q) => {
+        q.quotationItems.forEach((qi) => {
+          totalLeadTime += qi.leadTimeDays;
+          leadTimeCount++;
         });
-        const avgLeadTimeDays = leadTimeCount > 0 ? totalLeadTime / leadTimeCount : 0;
-
-        return {
-          vendorId: v.id,
-          vendorName: v.name,
-          conversionRate: Math.round(conversionRate * 10) / 10,
-          avgLeadTimeDays: Math.round(avgLeadTimeDays * 10) / 10,
-          totalPOs: v.purchaseOrders.length,
-        };
       });
-    }
+      const avgLeadTimeDays = leadTimeCount > 0 ? totalLeadTime / leadTimeCount : 0;
+      const assignedRfqs = v.rfqVendors.length;
+      const responseRate = assignedRfqs > 0 ? Math.min(100, Math.round((totalQuotes / assignedRfqs) * 100)) : 100;
+
+      let rawScore = 75;
+      if (totalQuotes > 0) {
+        rawScore = Math.round((responseRate * 0.3) + (approvalRate * 0.5) + (10 - Math.min(10, avgLeadTimeDays)) * 2);
+      }
+      const vendorScore = Math.min(98, Math.max(65, rawScore));
+
+      return {
+        vendorId: v.id,
+        vendorName: v.name,
+        responseRate,
+        approvalRate,
+        avgLeadTimeDays: Math.round(avgLeadTimeDays * 10) / 10,
+        totalPOs: v.purchaseOrders.length,
+        vendorScore,
+        completedOrders: v.purchaseOrders.filter(p => p.status === "COMPLETED").length,
+        rejectedQuotations: rejectedQuotes
+      };
+    });
 
     // 2. Spending Summaries (Intra vs Inter GST and Month-by-month spend in the last 6 months)
     const invoices = await prisma.invoice.findMany({
       where: {
-        status: "PAID",
+        status: { in: ["SENT", "PAID"] },
         ...vendorScope,
       },
     });
@@ -240,11 +391,45 @@ export async function getReportsData(req: AuthenticatedRequest, res: Response) {
       );
     }
 
+    // 5. Cost Savings Summary
+    const rfqsWithQuotes = await prisma.rfq.findMany({
+      include: {
+        quotations: {
+          where: {
+            status: { in: ["APPROVED", "SUBMITTED", "UNDER_REVIEW"] }
+          }
+        }
+      }
+    });
+
+    let totalHighest = 0;
+    let totalBest = 0;
+    let totalSavings = 0;
+
+    rfqsWithQuotes.forEach(r => {
+      const quotes = r.quotations;
+      if (quotes.length > 0) {
+        const prices = quotes.map(q => Number(q.grandTotal));
+        const maxPrice = Math.max(...prices);
+        const approvedQuote = quotes.find(q => q.status === "APPROVED");
+        const bestPrice = approvedQuote ? Number(approvedQuote.grandTotal) : Math.min(...prices);
+        
+        totalHighest += maxPrice;
+        totalBest += bestPrice;
+        totalSavings += (maxPrice - bestPrice);
+      }
+    });
+
     return res.status(200).json({
       vendorPerformance,
       spendingSummaries,
       procurementTrends,
       topVendors,
+      costSavings: {
+        highestQuote: totalHighest,
+        bestQuote: totalBest,
+        savings: totalSavings
+      }
     });
   } catch (error) {
     console.error("Error generating report statistics:", error);

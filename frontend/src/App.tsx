@@ -1,122 +1,223 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import VendorList from "./pages/VendorList";
+import RfqList from "./pages/RfqList";
+import RfqNew from "./pages/RfqNew";
+import RfqDetail from "./pages/RfqDetail";
+import QuotationSubmit from "./pages/QuotationSubmit";
+import QuotationCompare from "./pages/QuotationCompare";
+import ApprovalQueue from "./pages/ApprovalQueue";
+import POList from "./pages/POList";
+import PODetail from "./pages/PODetail";
+import InvoiceDetail from "./pages/InvoiceDetail";
+import Reports from "./pages/Reports";
+import ActivityLogs from "./pages/ActivityLogs";
+import Unauthorized from "./pages/Unauthorized";
 
-function App() {
-  const [count, setCount] = useState(0)
+import Sidebar from "./components/layout/Sidebar";
+import Header from "./components/layout/Header";
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+// Instantiate TanStack Query Client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+// Protected Route Wrapper with RBAC Checks
+interface ProtectedRouteProps {
+  children: React.ReactElement;
+  allowedRoles?: string[];
 }
 
-export default App
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
+  const token = localStorage.getItem("token");
+  const userRaw = localStorage.getItem("user");
+  const location = useLocation();
+
+  if (!token || !userRaw) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  const user = JSON.parse(userRaw);
+
+  if (allowedRoles && !allowedRoles.includes(user.roleName)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Determine current page header title based on location pathname
+  const getPageTitle = (path: string) => {
+    if (path.startsWith("/dashboard")) return "Dashboard Overview";
+    if (path.startsWith("/vendors")) return "Vendor Directory";
+    if (path.startsWith("/rfqs/new")) return "RFQ Worksheet Creator";
+    if (path.startsWith("/rfqs")) return "Request for Quotations";
+    if (path.startsWith("/quotations/compare")) return "Quotation Side-By-Side Comparison";
+    if (path.startsWith("/quotations/submit")) return "Vendor Bid Portal";
+    if (path.startsWith("/approvals")) return "Manager Approvals Queue";
+    if (path.startsWith("/purchase-orders")) return "Purchase Orders";
+    if (path.startsWith("/invoices")) return "Tax Invoices & Billing";
+    if (path.startsWith("/reports")) return "Procurement Analytics";
+    if (path.startsWith("/activity-logs")) return "System Audit Trail Logs";
+    return "VendorBridge ERP";
+  };
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      {/* Left Sidebar */}
+      <Sidebar role={user.roleName} />
+
+      {/* Right Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Header Navbar */}
+        <Header title={getPageTitle(location.pathname)} user={user} />
+
+        {/* Dynamic Workspace Area */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<Login />} />
+          
+          {/* Protected Portal Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendors"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER"]}>
+                <VendorList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rfqs"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <RfqList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rfqs/new"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER"]}>
+                <RfqNew />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rfqs/:id"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <RfqDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotations/submit/:rfqId"
+            element={
+              <ProtectedRoute allowedRoles={["VENDOR"]}>
+                <QuotationSubmit />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotations/compare/:rfqId"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER"]}>
+                <QuotationCompare />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approvals"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MANAGER"]}>
+                <ApprovalQueue />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/purchase-orders"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <POList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/purchase-orders/:id"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <PODetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices/:id"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <InvoiceDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER"]}>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/activity-logs"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <ActivityLogs />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/unauthorized"
+            element={
+              <ProtectedRoute>
+                <Unauthorized />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Root Redirects */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Router>
+    </QueryClientProvider>
+  );
+};
+
+export default App;

@@ -108,3 +108,96 @@ export async function generateInvoicePdf(
     return null; // resolve successfully with null url
   }
 }
+
+export async function generateExecutiveReportPdf(data: {
+  totalSpend: number;
+  costSavings: number;
+  totalVendors: number;
+  totalRfqs: number;
+  totalQuotations: number;
+  totalPOs: number;
+  topVendors: Array<{ vendorName: string; totalSpend: number }>;
+  monthlySpend: Array<{ month: string; amount: number }>;
+}): Promise<string> {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([600, 800]);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const { width, height } = page.getSize();
+
+  // Title
+  page.drawText("EXECUTIVE PROCUREMENT REPORT", { x: 50, y: height - 60, size: 20, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
+  page.drawText(`Generated on: ${new Date().toLocaleDateString()}`, { x: 50, y: height - 85, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
+  page.drawLine({ start: { x: 50, y: height - 95 }, end: { x: 550, y: height - 95 }, thickness: 1.5, color: rgb(0.1, 0.1, 0.4) });
+
+  // Summary Cards (Grid)
+  let y = height - 130;
+  page.drawText("Procurement Summary Dashboard", { x: 50, y, size: 14, font: boldFont });
+  y -= 30;
+
+  // Draw grid boxes for KPIs
+  const drawKpiBox = (label: string, value: string, x: number, yPos: number) => {
+    page.drawRectangle({ x, y: yPos - 35, width: 150, height: 50, color: rgb(0.96, 0.96, 0.98), borderColor: rgb(0.85, 0.85, 0.9), borderWidth: 1 });
+    page.drawText(label, { x: x + 10, y: yPos - 12, size: 8, font, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(value, { x: x + 10, y: yPos - 30, size: 11, font: boldFont, color: rgb(0.1, 0.1, 0.3) });
+  };
+
+  drawKpiBox("Total Spend", `INR ${data.totalSpend.toLocaleString()}`, 50, y);
+  drawKpiBox("Cost Savings", `INR ${data.costSavings.toLocaleString()}`, 210, y);
+  drawKpiBox("Total Suppliers", String(data.totalVendors), 370, y);
+
+  y -= 60;
+  drawKpiBox("Total RFQs Issued", String(data.totalRfqs), 50, y);
+  drawKpiBox("Total Quotations", String(data.totalQuotations), 210, y);
+  drawKpiBox("Purchase Orders", String(data.totalPOs), 370, y);
+
+  // Top Vendors Section
+  y -= 70;
+  page.drawText("Supplier Spend Rankings (Top 5)", { x: 50, y, size: 14, font: boldFont });
+  y -= 15;
+  page.drawLine({ start: { x: 50, y }, end: { x: 550, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+  y -= 20;
+
+  page.drawText("Supplier Name", { x: 55, y, size: 10, font: boldFont });
+  page.drawText("Total Spend (INR)", { x: 420, y, size: 10, font: boldFont });
+  y -= 8;
+  page.drawLine({ start: { x: 50, y }, end: { x: 550, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+  y -= 18;
+
+  data.topVendors.forEach((v: any, index: number) => {
+    page.drawText(`${index + 1}. ${v.vendorName}`, { x: 55, y, size: 10, font });
+    page.drawText(`INR ${Number(v.totalSpend).toLocaleString()}`, { x: 420, y, size: 10, font });
+    y -= 18;
+  });
+
+  // Monthly Spending Trends Section
+  y -= 20;
+  page.drawText("Monthly Spending Trends (Last 6 Months)", { x: 50, y, size: 14, font: boldFont });
+  y -= 15;
+  page.drawLine({ start: { x: 50, y }, end: { x: 550, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+  y -= 20;
+
+  page.drawText("Month", { x: 55, y, size: 10, font: boldFont });
+  page.drawText("Spend (INR)", { x: 420, y, size: 10, font: boldFont });
+  y -= 8;
+  page.drawLine({ start: { x: 50, y }, end: { x: 550, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+  y -= 18;
+
+  data.monthlySpend.forEach((item: any) => {
+    page.drawText(item.month, { x: 55, y, size: 10, font });
+    page.drawText(`INR ${Number(item.amount).toLocaleString()}`, { x: 420, y, size: 10, font });
+    y -= 18;
+  });
+
+  // Footer / Sign-off
+  page.drawLine({ start: { x: 50, y: 70 }, end: { x: 550, y: 70 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+  page.drawText("VendorBridge Executive ERP | Confidential business intelligence report.", { x: 50, y: 55, size: 8, font, color: rgb(0.5, 0.5, 0.5) });
+
+  const pdfBytes = await pdfDoc.save();
+  const fileName = `Exec-Report-${Date.now()}.pdf`;
+  const filePath = path.join(uploadDir, fileName);
+  fs.writeFileSync(filePath, pdfBytes);
+
+  return `/uploads/${fileName}`;
+}
+

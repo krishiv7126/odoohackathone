@@ -1,6 +1,7 @@
 import { Response } from "express";
 import prisma from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
+import { generateExecutiveReportPdf } from "../services/pdf.service";
 
 // Get Dashboard KPIs & Recent Actions
 export async function getDashboardStats(req: AuthenticatedRequest, res: Response) {
@@ -433,6 +434,131 @@ export async function getReportsData(req: AuthenticatedRequest, res: Response) {
     });
   } catch (error) {
     console.error("Error generating report statistics:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// Export Executive PDF Report
+export async function exportExecutiveReport(req: AuthenticatedRequest, res: Response) {
+  try {
+    // 1. Counters
+    const totalVendors = await prisma.vendor.count({ where: { status: "APPROVED" } });
+    const totalRfqs = await prisma.rfq.count();
+    const totalQuotations = await prisma.quotation.count();
+    const totalPOs = await prisma.purchaseOrder.count();
+
+    // 2. Total Spend (Sum of grandTotal of POs with status SENT or COMPLETED)
+    const totalSpendResult = await prisma.purchaseOrder.aggregate({
+      where: {
+        status: { in: ["SENT", "COMPLETED"] },
+      },
+      _sum: {
+        grandTotal: true,
+      },
+    });
+    const totalSpend = Number(totalSpendResult._sum.grandTotal || 0);
+
+    // 3. Cost Savings calculation (Highest Quote vs Selected/Approved/Best Quote)
+    const rfqsWithQuotes = await prisma.rfq.findMany({
+      include: {
+        quotations: {
+          where: {
+            status: { in: ["APPROVED", "SUBMITTED", "UNDER_REVIEW"] }
+          }
+        }
+      }
+    });
+
+    let totalHighest = 0;
+    let totalBest = 0;
+    let totalSavings = 0;
+
+    rfqsWithQuotes.forEach(r => {
+      const quotes = r.quotations;
+      if (quotes.length > 0) {
+        const prices = quotes.map(q => Number(q.grandTotal));
+        const maxPrice = Math.max(...prices);
+        const approvedQuote = quotes.find(q => q.status === "APPROVED");
+        const bestPrice = approvedQuote ? Number(approvedQuote.grandTotal) : Math.min(...prices);
+        
+        totalHighest += maxPrice;
+        totalBest += bestPrice;
+        totalSavings += (maxPrice - bestPrice);
+      }
+    });
+
+    // 4. Top Vendors by Spend
+    const vendorSpend = await prisma.purchaseOrder.groupBy({
+      by: ["vendorId"],
+      _sum: {
+        grandTotal: true,
+      },
+      where: {
+        status: { in: ["SENT", "COMPLETED"] },
+      },
+      orderBy: {
+        _sum: {
+          grandTotal: "desc",
+        },
+      },
+      take: 5,
+    });
+
+    const topVendors = await Promise.all(
+      vendorSpend.map(async (item) => {
+        const vendor = await prisma.vendor.findUnique({
+          where: { id: item.vendorId },
+          select: { name: true },
+        });
+        return {
+          vendorName: vendor?.name || "Unknown Vendor",
+          totalSpend: Number(item._sum.grandTotal || 0),
+        };
+      })
+    );
+
+    // 5. Monthly Spend (last 6 months)
+    const invoices = await prisma.invoice.findMany({
+      where: {
+        status: { in: ["SENT", "PAID"] },
+      },
+    });
+
+    const spendByMonthMap: Record<string, { month: string; amount: number }> = {};
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      spendByMonthMap[key] = { month: key, amount: 0 };
+    }
+
+    invoices.forEach((inv) => {
+      const date = new Date(inv.createdAt);
+      const key = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+      if (spendByMonthMap[key]) {
+        spendByMonthMap[key].amount += Number(inv.grandTotal);
+      }
+    });
+
+    const monthlySpend = Object.values(spendByMonthMap);
+
+    // 6. Generate PDF
+    const fileUrl = await generateExecutiveReportPdf({
+      totalSpend,
+      costSavings: totalSavings,
+      totalVendors,
+      totalRfqs,
+      totalQuotations,
+      totalPOs,
+      topVendors,
+      monthlySpend
+    });
+
+    return res.status(200).json({ url: fileUrl, pdfUrl: fileUrl });
+  } catch (error) {
+    console.error("Error exporting executive report:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 }

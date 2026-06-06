@@ -9,7 +9,7 @@ import apiRoutes from "./routes";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Apply global middlewares
 app.use(cors());

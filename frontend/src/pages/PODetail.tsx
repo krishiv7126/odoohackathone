@@ -8,8 +8,7 @@ import {
   Calendar, 
   Receipt, 
   FileCheck, 
-  X,
-  Clock
+  X
 } from "lucide-react";
 import api from "../services/api";
 import ProgressTracker from "../components/workflow/ProgressTracker";

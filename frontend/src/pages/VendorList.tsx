@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Plus, ShieldCheck, ShieldAlert, X, Eye } from "lucide-react";
 import api from "../services/api";
-import Table, { TableColumn } from "../components/common/Table";
+import Table from "../components/common/Table";
+import type { TableColumn } from "../components/common/Table";
 import StatusBadge from "../components/common/StatusBadge";
 
 interface Vendor {
@@ -33,7 +34,6 @@ export const VendorList: React.FC = () => {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [formError, setFormError] = useState("");
-  const [formSuccess, setFormSuccess] = useState("");
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const canModify = currentUser.roleName === "ADMIN" || currentUser.roleName === "PROCUREMENT_OFFICER";
@@ -55,7 +55,6 @@ export const VendorList: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendors"] });
-      setFormSuccess("Vendor profile successfully created.");
       setIsModalOpen(false);
       resetForm();
     },
@@ -89,7 +88,6 @@ export const VendorList: React.FC = () => {
   const handleCreateVendor = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-    setFormSuccess("");
     createVendorMutation.mutate({
       name,
       companyRegNo,

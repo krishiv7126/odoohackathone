@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckSquare, Eye, X, CheckCircle, ShieldAlert } from "lucide-react";
 import api from "../services/api";
-import Table, { TableColumn } from "../components/common/Table";
+import Table from "../components/common/Table";
+import type { TableColumn } from "../components/common/Table";
 import { formatCurrency, formatDate } from "../utils/formatters";
 
 interface PendingQuote {

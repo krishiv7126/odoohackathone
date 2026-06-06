@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, ArrowLeft, Gavel, Save } from "lucide-react";
+import { ArrowLeft, Gavel, Save } from "lucide-react";
 import api from "../services/api";
 import { formatCurrency } from "../utils/formatters";
 

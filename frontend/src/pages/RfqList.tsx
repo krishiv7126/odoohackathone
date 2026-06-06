@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { FileText, Plus, ArrowRight } from "lucide-react";
 import api from "../services/api";
-import Table, { TableColumn } from "../components/common/Table";
+import Table from "../components/common/Table";
+import type { TableColumn } from "../components/common/Table";
 import StatusBadge from "../components/common/StatusBadge";
 import { formatDate } from "../utils/formatters";
 

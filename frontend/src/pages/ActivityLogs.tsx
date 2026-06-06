@@ -2,8 +2,8 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { History, ShieldAlert } from "lucide-react";
 import api from "../services/api";
-import Table, { TableColumn } from "../components/common/Table";
-import { formatDate } from "../utils/formatters";
+import Table from "../components/common/Table";
+import type { TableColumn } from "../components/common/Table";
 
 interface ActivityLog {
   id: string;

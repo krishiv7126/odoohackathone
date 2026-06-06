@@ -11,7 +11,6 @@ import {
   Calendar, 
   LayoutGrid, 
   Gavel, 
-  Check, 
   X,
   FileCheck
 } from "lucide-react";
@@ -158,7 +157,6 @@ export const RfqDetail: React.FC = () => {
 
   const rfqSteps = ["DRAFT", "SENT", "CLOSED", "COMPLETED"];
   const vendorHasQuoted = rfq.rfqVendors.find(rv => rv.vendorId === currentUser.vendorId)?.status === "SUBMITTED";
-  const vendorQuotationId = compareData?.quotations.find(q => q.vendorId === currentUser.vendorId)?.id;
 
   return (
     <div className="space-y-6 select-none p-1">
@@ -356,7 +354,7 @@ export const RfqDetail: React.FC = () => {
                 {rfq.rfqAttachments.map((att) => (
                   <a
                     key={att.id}
-                    href={`http://localhost:5000${att.filePath}`}
+                    href={`http://localhost:5001${att.filePath}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-between p-2.5 rounded bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors text-xs text-slate-700 font-semibold"

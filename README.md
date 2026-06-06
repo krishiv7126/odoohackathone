@@ -199,90 +199,36 @@ npm run dev
 
 ## Login & Authentication
 ![Login Page](screenshots/01-login.png)
-![Vendor Registration](screenshots/02-register.png)
 
-Brief description:
-Secure JWT-based authentication with role-based access control and public registration for suppliers.
+*Caption: Secure login portal with role-based access control and quick-autofill cards for sandbox testing.*
 
 ---
 
-## Dashboard
+## Vendor Registration
+![Vendor Registration](screenshots/02-register.png)
+
+*Caption: Public vendor registration screen with input validations and supplier onboarding.*
+
+---
+
+## Dashboard Overview
 ![Dashboard Overview](screenshots/03-dashboard.png)
 
-Brief description:
-Centralized procurement overview with KPIs, procurement pipeline, cost savings analytics, recent activities, and vendor performance metrics.
+*Caption: Odoo ERP-inspired high-density dashboard featuring pipeline status counters, dynamic cost savings, and procurement health scores.*
 
 ---
 
 ## Vendor Management
 ![Vendor Directory](screenshots/04-vendor-directory.png)
 
-Brief description:
-Manage vendor onboarding, approval workflows, supplier profiles, and compliance details.
+*Caption: Vendor directory directory showing approved and pending supplier details, tax IDs, and reg codes.*
 
 ---
 
-## RFQ Management
-![RFQ Management](screenshots/05-rfq-list.png)
+## RFQ Sheets
+![Request for Quotations](screenshots/05-rfq-list.png)
 
-Brief description:
-Create, manage, assign, and distribute Request for Quotations with attachments and vendor mapping.
-
----
-
-## Quotation Management
-![Quotation Management](screenshots/06-quotation.png)
-
-Brief description:
-Collect supplier bids with GST calculations, lead times, and pricing breakdowns.
-
----
-
-## Quotation Comparison
-![Quotation Comparison](screenshots/07-approval.png)
-
-Brief description:
-Side-by-side quotation analysis with smart vendor recommendation and cost optimization insights.
-
----
-
-## Approval Workflow
-![Approval Queue](screenshots/07-approval.png)
-
-Brief description:
-Manager approval workflow with comments, status tracking, and procurement governance.
-
----
-
-## Purchase Orders
-![Purchase Orders](screenshots/08-purchase-order.png)
-
-Brief description:
-Generate and manage purchase orders from approved quotations.
-
----
-
-## Invoice & Billing
-![Invoice Details](screenshots/09-invoice.png)
-
-Brief description:
-GST-compliant invoicing with PDF generation and email dispatch support.
-
----
-
-## Reports & Analytics
-![Reports & Stats](screenshots/10-reports.png)
-
-Brief description:
-Procurement analytics, vendor scorecards, spending trends, cost savings, and executive reporting.
-
----
-
-## Audit Logs & Timeline
-![System Audit Logs](screenshots/11-audit-log.png)
-
-Brief description:
-Complete audit trail for procurement operations, approvals, and user activities.
+*Caption: Sourcing dashboard showing all RFQ documents, statuses, and vendor assignments.*
 
 ---
 
@@ -302,4 +248,5 @@ vendor1@vendorbridge.com
 
 Password:
 password123
+
 

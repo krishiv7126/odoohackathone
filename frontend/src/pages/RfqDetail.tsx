@@ -406,7 +406,7 @@ export const RfqDetail: React.FC = () => {
                 {rfq.rfqAttachments.map((att) => (
                   <a
                     key={att.id}
-                    href={`http://localhost:5001${att.filePath}`}
+                    href={`${(api.defaults.baseURL || "http://localhost:5001/api/v1").replace("/api/v1", "")}${att.filePath}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-between p-2.5 rounded bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors text-xs text-slate-700 font-semibold"

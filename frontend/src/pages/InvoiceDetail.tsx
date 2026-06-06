@@ -131,7 +131,7 @@ export const InvoiceDetail: React.FC = () => {
 
           {invoice.pdfUrl && (
             <a
-              href={`http://localhost:5001${invoice.pdfUrl}`}
+              href={`${(api.defaults.baseURL || "http://localhost:5001/api/v1").replace("/api/v1", "")}${invoice.pdfUrl}`}
               target="_blank"
               rel="noreferrer"
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded text-sm font-semibold flex items-center space-x-1.5 transition-colors text-slate-700"

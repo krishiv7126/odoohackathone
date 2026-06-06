@@ -57,7 +57,7 @@ export const Reports: React.FC = () => {
     try {
       const res = await api.get("/analytics/export-report");
       const pdfUrl = res.data.pdfUrl;
-      window.open(`http://localhost:5001${pdfUrl}`, "_blank");
+      window.open(`${(api.defaults.baseURL || "http://localhost:5001/api/v1").replace("/api/v1", "")}${pdfUrl}`, "_blank");
     } catch (err) {
       console.error("Failed to export executive report PDF:", err);
       alert("Failed to export executive report.");

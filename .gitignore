@@ -22,3 +22,4 @@ git commit -m "fix: update gitignore"
 git push
 X
 
+uploads/

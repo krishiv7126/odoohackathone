@@ -42,40 +42,42 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
     const monthlySpend = Number(monthlySpendResult._sum.grandTotal || 0);
 
     // 2. Cost Savings calculation (Highest Quote vs Selected/Approved/Best Quote)
-    const rfqsWithQuotes = await prisma.rfq.findMany({
-      include: {
-        quotations: {
-          where: {
-            status: { in: ["APPROVED", "SUBMITTED", "UNDER_REVIEW"] }
-          }
-        }
-      }
-    });
-
     let totalHighest = 0;
     let totalBest = 0;
     let totalSavings = 0;
     let quoteCountForAvg = 0;
     let totalQuotesSum = 0;
 
-    rfqsWithQuotes.forEach(r => {
-      const quotes = r.quotations;
-      if (quotes.length > 0) {
-        const prices = quotes.map(q => Number(q.grandTotal));
-        const maxPrice = Math.max(...prices);
-        const approvedQuote = quotes.find(q => q.status === "APPROVED");
-        const bestPrice = approvedQuote ? Number(approvedQuote.grandTotal) : Math.min(...prices);
-        
-        totalHighest += maxPrice;
-        totalBest += bestPrice;
-        totalSavings += (maxPrice - bestPrice);
-        
-        quotes.forEach(q => {
-          totalQuotesSum += Number(q.grandTotal);
-          quoteCountForAvg++;
-        });
-      }
-    });
+    if (!isVendor) {
+      const rfqsWithQuotes = await prisma.rfq.findMany({
+        include: {
+          quotations: {
+            where: {
+              status: { in: ["APPROVED", "SUBMITTED", "UNDER_REVIEW"] }
+            }
+          }
+        }
+      });
+
+      rfqsWithQuotes.forEach(r => {
+        const quotes = r.quotations;
+        if (quotes.length > 0) {
+          const prices = quotes.map(q => Number(q.grandTotal));
+          const maxPrice = Math.max(...prices);
+          const approvedQuote = quotes.find(q => q.status === "APPROVED");
+          const bestPrice = approvedQuote ? Number(approvedQuote.grandTotal) : Math.min(...prices);
+          
+          totalHighest += maxPrice;
+          totalBest += bestPrice;
+          totalSavings += (maxPrice - bestPrice);
+          
+          quotes.forEach(q => {
+            totalQuotesSum += Number(q.grandTotal);
+            quoteCountForAvg++;
+          });
+        }
+      });
+    }
 
     const averageQuote = quoteCountForAvg > 0 ? Math.round(totalQuotesSum / quoteCountForAvg) : 0;
 
@@ -147,12 +149,12 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
       };
     });
 
-    const topVendorsRanked = [...vendorScorecards]
+    const topVendorsRanked = isVendor ? [] : [...vendorScorecards]
       .sort((a, b) => b.vendorScore - a.vendorScore)
       .slice(0, 5);
 
     // 5. Recent Activity Logs (Latest 10)
-    const recentActivities = await prisma.activityLog.findMany({
+    const recentActivities = isVendor ? [] : await prisma.activityLog.findMany({
       take: 10,
       include: {
         user: {
@@ -204,7 +206,7 @@ export async function getDashboardStats(req: AuthenticatedRequest, res: Response
         totalInvoices,
         monthlySpend,
         totalQuotations,
-        costSavings: {
+        costSavings: isVendor ? null : {
           highestQuote: totalHighest,
           bestQuote: totalBest,
           averageQuote,

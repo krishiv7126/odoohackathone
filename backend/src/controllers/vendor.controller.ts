@@ -216,6 +216,11 @@ export async function updateVendorStatus(req: AuthenticatedRequest, res: Respons
 export async function getVendorScorecard(req: AuthenticatedRequest, res: Response) {
   const { id } = req.params;
 
+  // Security check: VENDOR role can only view their own scorecard
+  if (req.user?.roleName === "VENDOR" && req.user.vendorId !== id) {
+    return res.status(403).json({ message: "Forbidden: You can only view your own scorecard" });
+  }
+
   try {
     const vendor = await prisma.vendor.findUnique({
       where: { id },

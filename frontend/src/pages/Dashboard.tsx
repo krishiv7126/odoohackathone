@@ -347,43 +347,45 @@ export const Dashboard: React.FC = () => {
         <div className="lg:col-span-2 space-y-8">
           
           {/* System Audit Trail */}
-          <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">System Audit Trail (Recent Activities)</h3>
-              <Link to="/activity-logs" className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center space-x-1">
-                <span>View All Logs</span>
-                <ArrowRight size={12} />
-              </Link>
-            </div>
-            <div className="p-4 space-y-4 max-h-[350px] overflow-y-auto divide-y divide-slate-50">
-              {data.recentActivities?.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6 font-semibold">No recent activities logged.</p>
-              ) : (
-                data.recentActivities?.map((act) => (
-                  <div key={act.id} className="text-xs flex items-start space-x-3 pt-3 first:pt-0 pb-1">
-                    <div className="p-1.5 bg-slate-100 rounded flex-shrink-0 text-slate-500">
-                      <Activity size={14} />
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-0.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-800 uppercase text-[10px] tracking-wider">{act.action.replace(/_/g, " ")}</span>
-                        <span className="text-[9px] text-slate-400 font-medium">
-                          {new Date(act.createdAt).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
+          {!isVendor && (
+            <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">System Audit Trail (Recent Activities)</h3>
+                <Link to="/activity-logs" className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center space-x-1">
+                  <span>View All Logs</span>
+                  <ArrowRight size={12} />
+                </Link>
+              </div>
+              <div className="p-4 space-y-4 max-h-[350px] overflow-y-auto divide-y divide-slate-50">
+                {data.recentActivities?.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-6 font-semibold">No recent activities logged.</p>
+                ) : (
+                  data.recentActivities?.map((act) => (
+                    <div key={act.id} className="text-xs flex items-start space-x-3 pt-3 first:pt-0 pb-1">
+                      <div className="p-1.5 bg-slate-100 rounded flex-shrink-0 text-slate-500">
+                        <Activity size={14} />
                       </div>
-                      <p className="text-[11px] text-slate-600 leading-normal">{act.details}</p>
-                      {act.user && (
-                        <div className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider flex items-center space-x-1">
-                          <span>By:</span>
-                          <span className="text-slate-500 font-bold">{act.user.firstName} {act.user.lastName}</span>
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800 uppercase text-[10px] tracking-wider">{act.action.replace(/_/g, " ")}</span>
+                          <span className="text-[9px] text-slate-400 font-medium">
+                            {new Date(act.createdAt).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
                         </div>
-                      )}
+                        <p className="text-[11px] text-slate-600 leading-normal">{act.details}</p>
+                        {act.user && (
+                          <div className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider flex items-center space-x-1">
+                            <span>By:</span>
+                            <span className="text-slate-500 font-bold">{act.user.firstName} {act.user.lastName}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Grid for Recent items */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -477,40 +479,42 @@ export const Dashboard: React.FC = () => {
         <div className="space-y-6">
           
           {/* Top Suppliers ranking list */}
-          <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Top Suppliers</h3>
-              <Link to="/vendors" className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center space-x-1">
-                <span>View Directory</span>
-                <ArrowRight size={12} />
-              </Link>
-            </div>
-            <div className="p-4 space-y-4">
-              {data.topVendors?.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6 font-semibold">No suppliers ranked yet.</p>
-              ) : (
-                data.topVendors?.map((v, idx) => (
-                  <div key={v.vendorId} className="flex items-center justify-between border-b border-slate-50 pb-3 last:border-0 last:pb-0 text-xs">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-6 h-6 bg-primary-50 text-primary-600 rounded-full flex items-center justify-center font-bold text-[10px] border border-primary-200">
-                        #{idx + 1}
+          {!isVendor && (
+            <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Top Suppliers</h3>
+                <Link to="/vendors" className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center space-x-1">
+                  <span>View Directory</span>
+                  <ArrowRight size={12} />
+                </Link>
+              </div>
+              <div className="p-4 space-y-4">
+                {data.topVendors?.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-6 font-semibold">No suppliers ranked yet.</p>
+                ) : (
+                  data.topVendors?.map((v, idx) => (
+                    <div key={v.vendorId} className="flex items-center justify-between border-b border-slate-50 pb-3 last:border-0 last:pb-0 text-xs">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-6 h-6 bg-primary-50 text-primary-600 rounded-full flex items-center justify-center font-bold text-[10px] border border-primary-200">
+                          #{idx + 1}
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-800 block truncate max-w-[120px]">{v.vendorName}</span>
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase">Approval: {v.approvalRate}%</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-bold text-slate-800 block truncate max-w-[120px]">{v.vendorName}</span>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Approval: {v.approvalRate}%</span>
+                      <div className="text-right">
+                        <span className="font-extrabold text-slate-800 block">{formatCurrency(v.totalSpend)}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                          Score: {v.vendorScore}
+                        </span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-extrabold text-slate-800 block">{formatCurrency(v.totalSpend)}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
-                        Score: {v.vendorScore}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Grid for PO/Invoice lists */}
           <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">

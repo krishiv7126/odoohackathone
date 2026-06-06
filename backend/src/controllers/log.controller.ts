@@ -56,6 +56,24 @@ export async function getTimeline(req: AuthenticatedRequest, res: Response) {
       return res.status(200).json([]);
     }
 
+    // Security check: VENDOR role must be assigned to the RFQ to view its timeline
+    if (req.user?.roleName === "VENDOR") {
+      if (!req.user.vendorId) {
+        return res.status(400).json({ message: "Vendor profile not linked" });
+      }
+      const isAssigned = await prisma.rfqVendor.findUnique({
+        where: {
+          uq_rfq_vendor: {
+            rfqId: targetRfqId,
+            vendorId: req.user.vendorId,
+          },
+        },
+      });
+      if (!isAssigned) {
+        return res.status(403).json({ message: "Forbidden: You are not assigned to this RFQ" });
+      }
+    }
+
     // 1. Fetch all associated entity IDs
     const quotations = await prisma.quotation.findMany({ where: { rfqId: targetRfqId } });
     const quotationIds = quotations.map((q) => q.id);

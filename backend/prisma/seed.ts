@@ -4,7 +4,27 @@ import * as bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  console.log("Cleaning database...");
+  await prisma.activityLog.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.invoiceItem.deleteMany({});
+  await prisma.invoice.deleteMany({});
+  await prisma.purchaseOrderItem.deleteMany({});
+  await prisma.approval.deleteMany({});
+  await prisma.purchaseOrder.deleteMany({});
+  await prisma.quotationItem.deleteMany({});
+  await prisma.quotation.deleteMany({});
+  await prisma.rfqVendor.deleteMany({});
+  await prisma.rfqAttachment.deleteMany({});
+  await prisma.rfqItem.deleteMany({});
+  await prisma.rfq.deleteMany({});
+  await prisma.vendor.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.role.deleteMany({});
+  console.log("Database cleaned.");
+
   console.log("Seeding started...");
+
 
   // 1. Seed Roles
   const adminRole = await prisma.role.upsert({
@@ -191,8 +211,17 @@ async function main() {
     // Assign first 3 vendors to the first 4 RFQs
     if (statusArray[i] !== "DRAFT") {
       for (let j = 0; j < 3; j++) {
-        await prisma.rfqVendor.create({
-          data: {
+        await prisma.rfqVendor.upsert({
+          where: {
+            uq_rfq_vendor: {
+              rfqId: rfq.id,
+              vendorId: seededVendors[j].id,
+            },
+          },
+          update: {
+            status: j === 0 ? "SUBMITTED" : "PENDING",
+          },
+          create: {
             rfqId: rfq.id,
             vendorId: seededVendors[j].id,
             status: j === 0 ? "SUBMITTED" : "PENDING",

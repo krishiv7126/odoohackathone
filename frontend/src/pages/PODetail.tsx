@@ -14,6 +14,7 @@ import api from "../services/api";
 import ProgressTracker from "../components/workflow/ProgressTracker";
 import StatusBadge from "../components/common/StatusBadge";
 import { formatDate, formatCurrency } from "../utils/formatters";
+import ProcurementTimeline from "../components/workflow/ProcurementTimeline";
 
 interface POItem {
   id: string;
@@ -326,6 +327,9 @@ export const PODetail: React.FC = () => {
               </div>
             )}
           </div>
+          
+          {/* Procurement Timeline Widget */}
+          <ProcurementTimeline poId={po.id} />
         </div>
       </div>
 

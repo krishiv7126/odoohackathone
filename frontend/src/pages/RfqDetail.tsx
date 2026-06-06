@@ -17,6 +17,7 @@ import {
 import api from "../services/api";
 import StatusBadge from "../components/common/StatusBadge";
 import { formatDate, formatCurrency } from "../utils/formatters";
+import ProcurementTimeline from "../components/workflow/ProcurementTimeline";
 
 interface RfqDetailData {
   id: string;
@@ -460,6 +461,9 @@ export const RfqDetail: React.FC = () => {
               )}
             </div>
           )}
+          
+          {/* Procurement Timeline Widget */}
+          <ProcurementTimeline rfqId={rfq.id} />
         </div>
       </div>
 

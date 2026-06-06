@@ -12,6 +12,7 @@ import {
 import api from "../services/api";
 import StatusBadge from "../components/common/StatusBadge";
 import { formatDate, formatCurrency } from "../utils/formatters";
+import ProcurementTimeline from "../components/workflow/ProcurementTimeline";
 
 interface QuotationItem {
   id: string;
@@ -236,6 +237,9 @@ export const QuotationDetail: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Procurement Timeline Widget */}
+          <ProcurementTimeline quotationId={quote.id} />
         </div>
       </div>
     </div>

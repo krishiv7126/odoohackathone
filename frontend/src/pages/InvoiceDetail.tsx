@@ -13,6 +13,7 @@ import {
 import api from "../services/api";
 import StatusBadge from "../components/common/StatusBadge";
 import { formatDate, formatCurrency } from "../utils/formatters";
+import ProcurementTimeline from "../components/workflow/ProcurementTimeline";
 
 interface InvoiceItem {
   id: string;
@@ -258,6 +259,9 @@ export const InvoiceDetail: React.FC = () => {
               </div>
             </div>
           </div>
+          
+          {/* Procurement Timeline Widget */}
+          <ProcurementTimeline invoiceId={invoice.id} />
         </div>
       </div>
     </div>

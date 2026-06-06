@@ -219,6 +219,15 @@ export async function assignVendors(req: AuthenticatedRequest, res: Response) {
       )
     );
 
+    await createActivityLog(
+      req.user!.userId,
+      "RFQ_VENDORS_ASSIGNED",
+      "RFQ",
+      id,
+      req.ip,
+      `Assigned ${vendorIds.length} vendors to RFQ ${rfq.rfqNumber}.`
+    );
+
     return res.status(200).json({ message: "Vendors assigned successfully", assignments });
   } catch (error) {
     console.error("Error assigning vendors to RFQ:", error);

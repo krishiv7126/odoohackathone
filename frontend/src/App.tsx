@@ -14,6 +14,7 @@ import QuotationDetail from "./pages/QuotationDetail";
 import ApprovalQueue from "./pages/ApprovalQueue";
 import POList from "./pages/POList";
 import PODetail from "./pages/PODetail";
+import InvoiceList from "./pages/InvoiceList";
 import InvoiceDetail from "./pages/InvoiceDetail";
 import Reports from "./pages/Reports";
 import ActivityLogs from "./pages/ActivityLogs";
@@ -194,6 +195,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
                 <PODetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <InvoiceList />
               </ProtectedRoute>
             }
           />

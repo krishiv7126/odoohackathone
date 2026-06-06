@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Building2, Mail, Lock, ShieldAlert } from "lucide-react";
 import api from "../services/api";
 
@@ -158,7 +158,13 @@ export const Login: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-center pt-2">
+        <div className="text-center space-y-3 pt-2">
+          <div className="text-xs text-slate-400">
+            Are you a supplier?{" "}
+            <Link to="/register" className="text-primary-500 font-bold hover:underline">
+              Register as Vendor
+            </Link>
+          </div>
           <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-relaxed">
             Authorized access only. Audit logging is active.
           </p>

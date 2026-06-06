@@ -171,3 +171,91 @@ export async function logout(req: AuthenticatedRequest, res: Response) {
 
   return res.status(200).json({ message: "Logged out successfully" });
 }
+
+// Public register controller (Exclusively for VENDOR role)
+export async function registerPublic(req: AuthenticatedRequest, res: Response) {
+  const { firstName, lastName, email, phoneNumber, country, additionalInfo, password } = req.body;
+
+  if (!email || !password || !firstName || !lastName || !phoneNumber || !country) {
+    return res.status(400).json({ message: "First Name, Last Name, Email, Phone Number, Country, and Password are required" });
+  }
+
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "A user with this email already exists" });
+    }
+
+    // Exclusively get the VENDOR role
+    const role = await prisma.role.findUnique({ where: { name: "VENDOR" } });
+    if (!role) {
+      return res.status(500).json({ message: "System role VENDOR is not seeded" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Save profile photo details (if uploaded)
+    const photoFile = req.file;
+    const photoPath = photoFile ? `/uploads/${photoFile.filename}` : null;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create User
+      const user = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          firstName,
+          lastName,
+          roleId: role.id,
+          isActive: true,
+        },
+      });
+
+      // 2. Create Vendor Profile
+      const uniqueSuffix = Date.now() + "-" + Math.floor(Math.random() * 1000);
+      const vendor = await tx.vendor.create({
+        data: {
+          name: `${firstName} ${lastName} Enterprises`,
+          companyRegNo: `REG-${uniqueSuffix}`,
+          taxId: `27TAXID-${uniqueSuffix.substring(0, 7)}`, // Maharashtra code prefix
+          address: `${additionalInfo || "No additional information provided"}, ${country}`,
+          contactName: `${firstName} ${lastName}`,
+          contactEmail: email,
+          contactPhone: phoneNumber,
+          userId: user.id,
+          status: "PENDING",
+        },
+      });
+
+      return { user, vendor };
+    });
+
+    // Write action log
+    await createActivityLog(
+      result.user.id,
+      "USER_REGISTERED",
+      "USER",
+      result.user.id,
+      req.ip,
+      `User ${firstName} ${lastName} registered publicly as VENDOR. Photo: ${photoPath || "None"}.`
+    );
+
+    return res.status(201).json({
+      message: "Vendor registered successfully. You can now log in.",
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        firstName: result.user.firstName,
+        lastName: result.user.lastName,
+      },
+      vendor: {
+        id: result.vendor.id,
+        name: result.vendor.name,
+      }
+    });
+
+  } catch (error: any) {
+    console.error("Public register error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}

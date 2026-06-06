@@ -8,6 +8,7 @@ import poRoutes from "./po.routes";
 import invoiceRoutes from "./invoice.routes";
 import logRoutes from "./log.routes";
 import analyticsRoutes from "./analytics.routes";
+import notificationRoutes from "./notification.routes";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/pos", poRoutes);
 router.use("/invoices", invoiceRoutes);
 router.use("/activity-logs", logRoutes);
 router.use("/analytics", analyticsRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;

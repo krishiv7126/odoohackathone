@@ -10,7 +10,8 @@ import {
   BarChart3, 
   History, 
   LogOut,
-  Building2
+  Building2,
+  Gavel
 } from "lucide-react";
 import api from "../../services/api";
 
@@ -50,6 +51,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ role }) => {
       to: "/rfqs",
       label: "RFQ Sheets",
       icon: <FileText size={18} />,
+      roles: ["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"],
+    },
+    {
+      to: "/quotations",
+      label: "Quotations",
+      icon: <Gavel size={18} />,
       roles: ["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"],
     },
     {

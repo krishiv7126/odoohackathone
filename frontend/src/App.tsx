@@ -9,6 +9,8 @@ import RfqNew from "./pages/RfqNew";
 import RfqDetail from "./pages/RfqDetail";
 import QuotationSubmit from "./pages/QuotationSubmit";
 import QuotationCompare from "./pages/QuotationCompare";
+import QuotationList from "./pages/QuotationList";
+import QuotationDetail from "./pages/QuotationDetail";
 import ApprovalQueue from "./pages/ApprovalQueue";
 import POList from "./pages/POList";
 import PODetail from "./pages/PODetail";
@@ -59,6 +61,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     if (path.startsWith("/rfqs")) return "Request for Quotations";
     if (path.startsWith("/quotations/compare")) return "Quotation Side-By-Side Comparison";
     if (path.startsWith("/quotations/submit")) return "Vendor Bid Portal";
+    if (path.startsWith("/quotations/")) return "Quotation Detail Sheet";
+    if (path.startsWith("/quotations")) return "Quotation Sheets";
     if (path.startsWith("/approvals")) return "Manager Approvals Queue";
     if (path.startsWith("/purchase-orders")) return "Purchase Orders";
     if (path.startsWith("/invoices")) return "Tax Invoices & Billing";
@@ -150,6 +154,22 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER"]}>
                 <QuotationCompare />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotations"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <QuotationList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotations/:id"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PROCUREMENT_OFFICER", "MANAGER", "VENDOR"]}>
+                <QuotationDetail />
               </ProtectedRoute>
             }
           />

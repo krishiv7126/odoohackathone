@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Download, Printer, TrendingUp, Award, DollarSign } from "lucide-react";
+import { BarChart3, Download, Printer, TrendingUp, Award, DollarSign, FileText, PiggyBank } from "lucide-react";
 import api from "../services/api";
 import { formatCurrency } from "../utils/formatters";
 
@@ -8,9 +8,13 @@ interface ReportData {
   vendorPerformance: Array<{
     vendorId: string;
     vendorName: string;
-    conversionRate: number;
+    responseRate: number;
+    approvalRate: number;
     avgLeadTimeDays: number;
     totalPOs: number;
+    vendorScore: number;
+    completedOrders: number;
+    rejectedQuotations: number;
   }>;
   spendingSummaries: Array<{
     month: string;
@@ -28,6 +32,11 @@ interface ReportData {
     vendorName: string;
     totalSpend: number;
   }>;
+  costSavings: {
+    highestQuote: number;
+    bestQuote: number;
+    savings: number;
+  };
 }
 
 export const Reports: React.FC = () => {
@@ -42,6 +51,17 @@ export const Reports: React.FC = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleExportExecutiveReport = async () => {
+    try {
+      const res = await api.get("/analytics/export-report");
+      const pdfUrl = res.data.pdfUrl;
+      window.open(`http://localhost:5001${pdfUrl}`, "_blank");
+    } catch (err) {
+      console.error("Failed to export executive report PDF:", err);
+      alert("Failed to export executive report.");
+    }
   };
 
   const handleExportCSV = (dataset: any[], filename: string) => {
@@ -97,6 +117,13 @@ export const Reports: React.FC = () => {
         </div>
         <div className="flex items-center space-x-2 print:hidden">
           <button
+            onClick={handleExportExecutiveReport}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold flex items-center space-x-1.5 transition-all shadow shadow-emerald-600/10"
+          >
+            <FileText size={14} />
+            <span>Export Executive Report</span>
+          </button>
+          <button
             onClick={() => handleExportCSV(vendorPerformance, "vendor_performance_report.csv")}
             className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded text-xs font-semibold flex items-center space-x-1.5 transition-colors text-slate-700"
           >
@@ -105,13 +132,43 @@ export const Reports: React.FC = () => {
           </button>
           <button
             onClick={handlePrint}
-            className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded text-xs font-semibold flex items-center space-x-1.5 transition-all shadow shadow-primary-500/10"
+            className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded text-xs font-semibold flex items-center space-x-1.5 transition-colors text-slate-700"
           >
             <Printer size={14} />
-            <span>Export PDF / Print</span>
+            <span>Print Report</span>
           </button>
         </div>
       </div>
+
+      {/* Cost Savings Executive Widget */}
+      {data.costSavings && (
+        <div className="bg-white p-6 border border-slate-200 rounded-lg shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center space-x-2 border-b border-slate-100 pb-2">
+            <PiggyBank size={18} className="text-slate-500" />
+            <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Executive Savings Summary</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs font-semibold">
+            <div className="bg-green-50/50 p-4 rounded border border-green-100 flex flex-col justify-between">
+              <span className="block text-[10px] text-green-600 uppercase tracking-wider">Savings Achieved</span>
+              <span className="text-xl font-extrabold text-green-700 mt-1 block">
+                {formatCurrency(data.costSavings.savings)}
+              </span>
+            </div>
+            <div className="bg-slate-50 p-4 rounded border border-slate-200/50 flex flex-col justify-between">
+              <span className="block text-[10px] text-slate-400 uppercase tracking-wider">Best Bid Sum</span>
+              <span className="text-sm font-bold text-slate-700 mt-1 block">
+                {formatCurrency(data.costSavings.bestQuote)}
+              </span>
+            </div>
+            <div className="bg-slate-50 p-4 rounded border border-slate-200/50 flex flex-col justify-between">
+              <span className="block text-[10px] text-slate-400 uppercase tracking-wider">Highest Bid Sum</span>
+              <span className="text-sm font-bold text-slate-700 mt-1 block">
+                {formatCurrency(data.costSavings.highestQuote)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Analytics Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -183,32 +240,28 @@ export const Reports: React.FC = () => {
               <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-3">Supplier Name</th>
-                  <th className="px-6 py-3 text-center">Approved POs</th>
-                  <th className="px-6 py-3 text-center">Bid Conversion Rate</th>
-                  <th className="px-6 py-3 text-center">Avg Lead Time (Days)</th>
-                  <th className="px-6 py-3">Rating Status</th>
+                  <th className="px-6 py-3 text-center">Score</th>
+                  <th className="px-6 py-3 text-center">Response Rate</th>
+                  <th className="px-6 py-3 text-center">Approval Rate</th>
+                  <th className="px-6 py-3 text-center">Lead Time</th>
+                  <th className="px-6 py-3 text-center">Completed POs</th>
+                  <th className="px-6 py-3 text-center">Rejected Bids</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {vendorPerformance.map((vendor) => (
                   <tr key={vendor.vendorId}>
                     <td className="px-6 py-3.5 font-bold text-slate-800">{vendor.vendorName}</td>
-                    <td className="px-6 py-3.5 text-center text-slate-600 font-semibold">{vendor.totalPOs}</td>
-                    <td className="px-6 py-3.5 text-center font-bold text-slate-700">
-                      {vendor.conversionRate}%
-                    </td>
-                    <td className="px-6 py-3.5 text-center text-slate-600 font-semibold">{vendor.avgLeadTimeDays} days</td>
-                    <td className="px-6 py-3.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        vendor.conversionRate >= 60 
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-                          : vendor.conversionRate >= 30 
-                            ? "bg-amber-50 text-amber-700 border border-amber-200" 
-                            : "bg-slate-100 text-slate-500 border border-slate-200"
-                      }`}>
-                        {vendor.conversionRate >= 60 ? "Preferred Supplier" : vendor.conversionRate >= 30 ? "Standard Supplier" : "Under Review"}
+                    <td className="px-6 py-3.5 text-center font-extrabold text-slate-700">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary-50 text-primary-700 border border-primary-100">
+                        {vendor.vendorScore} / 100
                       </span>
                     </td>
+                    <td className="px-6 py-3.5 text-center text-slate-600 font-semibold">{vendor.responseRate}%</td>
+                    <td className="px-6 py-3.5 text-center text-slate-600 font-semibold">{vendor.approvalRate}%</td>
+                    <td className="px-6 py-3.5 text-center text-slate-600 font-semibold">{vendor.avgLeadTimeDays} Days</td>
+                    <td className="px-6 py-3.5 text-center text-slate-600 font-semibold">{vendor.completedOrders}</td>
+                    <td className="px-6 py-3.5 text-center text-rose-500 font-semibold">{vendor.rejectedQuotations}</td>
                   </tr>
                 ))}
               </tbody>

@@ -74,6 +74,16 @@ export const VendorList: React.FC = () => {
     },
   });
 
+  // Fetch Scorecard Details
+  const { data: scorecard } = useQuery<any>({
+    queryKey: ["vendorScorecard", selectedVendor?.id],
+    queryFn: async () => {
+      const res = await api.get(`/vendors/${selectedVendor?.id}/scorecard`);
+      return res.data;
+    },
+    enabled: !!selectedVendor,
+  });
+
   const resetForm = () => {
     setName("");
     setCompanyRegNo("");
@@ -338,6 +348,53 @@ export const VendorList: React.FC = () => {
                   <span className="text-slate-700 font-medium">{selectedVendor.contactEmail}</span>
                 </div>
               </div>
+
+              {/* Scorecard Widget Section */}
+              {scorecard && (
+                <div className="border-t border-slate-100 pt-4 space-y-3">
+                  <span className="text-xs font-bold text-primary-500 uppercase tracking-wider flex items-center space-x-1">
+                    <span>Performance Scorecard</span>
+                  </span>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+                    <div className="bg-slate-50 p-2.5 rounded border border-slate-100">
+                      <span className="block text-[9px] text-slate-400 uppercase">Vendor Score</span>
+                      <span className="text-base font-extrabold text-primary-500 block mt-0.5">
+                        {scorecard.vendorScore} / 100
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded border border-slate-100">
+                      <span className="block text-[9px] text-slate-400 uppercase">Response Rate</span>
+                      <span className="text-base font-extrabold text-slate-700 block mt-0.5">
+                        {scorecard.responseRate}%
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded border border-slate-100">
+                      <span className="block text-[9px] text-slate-400 uppercase">Approval Rate</span>
+                      <span className="text-base font-extrabold text-emerald-600 block mt-0.5">
+                        {scorecard.approvalRate}%
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded border border-slate-100">
+                      <span className="block text-[9px] text-slate-400 uppercase">Avg Delivery</span>
+                      <span className="text-base font-extrabold text-slate-700 block mt-0.5">
+                        {scorecard.avgLeadTime} Days
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded border border-slate-100">
+                      <span className="block text-[9px] text-slate-400 uppercase">Completed POs</span>
+                      <span className="text-base font-extrabold text-slate-700 block mt-0.5">
+                        {scorecard.completedOrders}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded border border-slate-100">
+                      <span className="block text-[9px] text-slate-400 uppercase">Rejected Quotes</span>
+                      <span className="text-base font-extrabold text-rose-500 block mt-0.5">
+                        {scorecard.rejectedQuotations}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Approval controls */}
               {canApprove && selectedVendor.status === "PENDING" && (
